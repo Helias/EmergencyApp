@@ -12,11 +12,9 @@ android {
         multiDexEnabled true
     }
 
-    //EDIT
     sourceSets {
         main {
             jniLibs.srcDirs = ['libs/jniLibs']
-            //EDIT: Use your custom location to jniLibs. Path given is only for example purposes.
         }
     }
 

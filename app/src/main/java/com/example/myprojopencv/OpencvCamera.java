@@ -7,6 +7,7 @@ import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceView;
 import android.view.WindowManager;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.gms.vision.Frame;
@@ -27,6 +28,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
     private static final String TAG = "OpencvCamera";
     private CameraBridgeViewBase cameraBridgeViewBase;
+    private int maxFaceCount = 0;
 
 
     private BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(this) {
@@ -101,6 +103,16 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
             Frame frame = new Frame.Builder().setBitmap(myBitmap).build();
             SparseArray<Face> sparseArray = faceDetector.detect(frame);
+
+            // Show number of people
+            final int faceCount = sparseArray.size();
+
+            if (faceCount > maxFaceCount) {
+                maxFaceCount = faceCount;
+            }
+
+            TextView tv1 = (TextView) findViewById(R.id.camera_data);
+            tv1.setText("People: " + Integer.toString(faceCount )+ "  Peak: " + Integer.toString(maxFaceCount));
 
             for (int i = 0; i < sparseArray.size(); i++) {
                 Face face = sparseArray.valueAt(i);
