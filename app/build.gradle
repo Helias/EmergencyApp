@@ -15,7 +15,7 @@ android {
     //EDIT
     sourceSets {
         main {
-            jniLibs.srcDirs = ['/home/helias/AndroidStudioProjects/MyProjOpenCV/app/src/main/jniLibs']
+            jniLibs.srcDirs = ['libs/jniLibs']
             //EDIT: Use your custom location to jniLibs. Path given is only for example purposes.
         }
     }

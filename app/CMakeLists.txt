@@ -16,18 +16,18 @@ include_directories(${pathToOpenCV}/jni/include)
  
 add_library( # Sets the name of the library.
              native-lib
- 
+
              # Sets the library as a shared library.
              SHARED
- 
+
              # Provides a relative path to your source file(s).
              # Associated headers in the same location as their source
              # file are automatically included.
              src/main/cpp/native-lib.cpp )
- 
+
 # [EDIT] Similar to above lines, add the OpenCV library
 add_library( lib_opencv SHARED IMPORTED )
-set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION /home/helias/AndroidStudioProjects/MyProjOpenCV/app/src/main/jniLibs/${ANDROID_ABI}/libopencv_java3.so)
+set_target_properties(lib_opencv PROPERTIES IMPORTED_LOCATION /home/helias/AndroidStudioProjects/Android-Face-Detection/app/libs/jniLibs/${ANDROID_ABI}/libopencv_java3.so)
  
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because system libraries are included in the search path by
