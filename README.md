@@ -3,9 +3,11 @@ Android app for face detection in real-time.
 
 ## Requirements
 - [Android Studio](https://developer.android.com/studio)
+- [Android SDK](https://developer.android.com/studio#downloads)
 - [OpenCV Library 3.x](https://sourceforge.net/projects/opencvlibrary/files/)
 
-After downloaded OpenCV Library copy the libraries from **opencv-3.x.x-android-sdk/OpenCV-android-sdk/sdk/native/libs/** to **app/libs/jniLibs/**.
+About OpenCV Library copy the libraries from **opencv-3.x.x-android-sdk/OpenCV-android-sdk/sdk/native/libs/** to **app/libs/jniLibs/**.
+To link the Android SDK to the project, edit the **local.properties** file and correct the path.
 
 Open the project folder with **AndroidStudio**, build, compile and run the app 😉.
 
