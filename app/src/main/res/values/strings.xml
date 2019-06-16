@@ -1,0 +1,4 @@
+<resources>
+    <string name="app_name">Emergency</string>
+    <string name="camera_data">TextView</string>
+</resources>
