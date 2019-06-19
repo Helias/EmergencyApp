@@ -11,16 +11,33 @@
         android:layout_width="110dp"
         android:layout_height="100dp"
         android:layout_alignParentBottom="true"
-        android:layout_marginStart="265dp"
-        android:layout_marginTop="500dp"
-        android:layout_marginEnd="25dp"
-        android:layout_marginBottom="130dp"
-        android:text="OpenCV Camera"
+        android:layout_marginStart="111dp"
+        android:layout_marginTop="290dp"
+        android:layout_marginEnd="36dp"
+        android:layout_marginBottom="353dp"
+        android:text="Camera Detection"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toEndOf="@+id/mapInit"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="1.0" />
+
+    <Button
+        android:id="@+id/mapInit"
+        android:layout_width="102dp"
+        android:layout_height="77dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginStart="52dp"
+        android:layout_marginTop="289dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="365dp"
+        android:text="@string/map"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toStartOf="@+id/cameraInit"
+        app:layout_constraintHorizontal_bias="0.88"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintVertical_bias="0.0" />
+
 
 </android.support.constraint.ConstraintLayout>

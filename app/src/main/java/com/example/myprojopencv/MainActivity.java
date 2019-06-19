@@ -32,5 +32,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Button to call Map Activity
+        Button mapInit = (Button) findViewById(R.id.mapInit);
+        mapInit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(getApplicationContext(),MapsActivity.class);
+                startActivity(i);
+            }
+        });
+
+
     }
+
 }
