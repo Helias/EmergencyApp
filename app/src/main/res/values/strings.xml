@@ -3,4 +3,6 @@
     <string name="camera_data">TextView</string>
     <string name="title_activity_maps">Map</string>
     <string name="map">Map</string>
+    <string name="camera_detection">Camera Detection</string>
+    <string name="add_record">＋ Add</string>
 </resources>

@@ -1,6 +1,11 @@
 package com.example.myprojopencv;
 
+import android.content.Context;
 import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,11 +29,20 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2 {
+public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, SensorEventListener {
 
     private static final String TAG = "OpencvCamera";
     private CameraBridgeViewBase cameraBridgeViewBase;
     private int maxFaceCount = 0;
+    private float mOrientation = 0f;
+
+    private SensorManager mSensorManager;
+    private Sensor mLight;
+
+    private final float[] accelerometerReading = new float[3];
+    private final float[] magnetometerReading = new float[3];
+    private final float[] rotationMatrix = new float[9];
+    private final float[] orientationAngles = new float[3];
 
 
     private BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(this) {
@@ -54,11 +68,29 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         cameraBridgeViewBase = (CameraBridgeViewBase) findViewById(R.id.camera_view);
         cameraBridgeViewBase.setVisibility(SurfaceView.VISIBLE);
         cameraBridgeViewBase.setCvCameraViewListener(this);
+
+        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        mLight = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
     }
 
     @Override
     public void onResume(){
         super.onResume();
+
+        // Position Sensor
+        mSensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL);
+
+        Sensor accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+        if (accelerometer != null) {
+            mSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
+        }
+
+        Sensor magneticField = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        if (magneticField != null) {
+            mSensorManager.registerListener(this, magneticField, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
+        }
+
+        // OpenCV
         if (!OpenCVLoader.initDebug()) {
             Log.d(TAG, "Internal OpenCV library not found. Using OpenCV Manager for initialization");
             OpenCVLoader.initAsync(OpenCVLoader.OPENCV_VERSION_3_1_0, this, baseLoaderCallback);
@@ -112,7 +144,11 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
             }
 
             TextView tv1 = (TextView) findViewById(R.id.camera_data);
-            tv1.setText("People: " + Integer.toString(faceCount )+ "  Peak: " + Integer.toString(maxFaceCount));
+            tv1.setText("People: " + Integer.toString(faceCount )+ "  Peak: " + Integer.toString(maxFaceCount) + " O1: " +  rotationMatrix[0] + " O2: " + rotationMatrix[1] + " O3: " + rotationMatrix[2]);
+
+            TextView tv2 = (TextView) findViewById(R.id.loc_data);
+            tv2.setText("Test");
+
 
             for (int i = 0; i < sparseArray.size(); i++) {
                 Face face = sparseArray.valueAt(i);
@@ -128,4 +164,56 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
         return mRgba;
     }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        updateOrientationAngles();
+
+        float[] mGravity = null;
+        float[] mGeomagnetic = null;
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+            mGravity = event.values;
+
+        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+            mGeomagnetic = event.values;
+
+        if (mGravity != null && mGeomagnetic != null) {
+
+            float R[] = new float[9];
+            float I[] = new float[9];
+
+            if (SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic)) {
+
+                // orientation contains azimut, pitch and roll
+                float orientation[] = new float[3];
+                SensorManager.getOrientation(R, orientation);
+
+                mOrientation = 3;
+
+                mOrientation = orientation[0] * 360 / (2 * 3.14159f);
+            }
+        }
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, accelerometerReading,0, accelerometerReading.length);
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+    }
+
+    public void updateOrientationAngles() {
+
+        // Update rotation matrix, which is needed to update orientation angles.
+        SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading);
+        SensorManager.getOrientation(rotationMatrix, orientationAngles);
+    }
+
+
 }

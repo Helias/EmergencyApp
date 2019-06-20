@@ -19,18 +19,16 @@ import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener {
 
     private GoogleMap mMap;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
 
-    GoogleApiClient mGoogleApiClient;
-    Marker mLocationMarker;
-    Location mLastLocation;
-    LocationRequest mLocationRequest;
-
+    public static Location mLastLocation;
+    public static float range;
     private boolean isExit = false;
 
     public boolean checkLocationPermission(){
@@ -88,14 +86,13 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             checkLocationPermission();
         }
 
-
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
 
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
+
         mMap = googleMap;
         mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
 
@@ -130,6 +127,10 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (!isExit) {
 
                 float p = (float) 0.001;
+                range = p;
+
+                mLastLocation = location;
+
                 mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).position(new LatLng(location.getLatitude() + p, location.getLongitude())).title("Exit 1"));
                 mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)).position(new LatLng(location.getLatitude() - p, location.getLongitude())).title("Exit 2"));
                 mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)).position(new LatLng(location.getLatitude(), location.getLongitude() + p)).title("Exit 3"));

@@ -1,28 +1,58 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:opencv="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_opencv_camera"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:verticalScrollbarPosition="right"
     tools:context="com.example.myprojopencv.OpencvCamera">
 
-    <org.opencv.android.JavaCameraView
-        android:id="@+id/camera_view"
-        android:layout_width="370dp"
-        android:layout_height="478dp"
-        android:layout_centerHorizontal="true"
-        opencv:camera_id="any"
-        opencv:show_fps="false" />
+    <android.support.constraint.ConstraintLayout
+        android:id="@+id/relativeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="1200dp">
 
-    <TextView
-        android:id="@+id/camera_data"
-        android:layout_width="374dp"
-        android:layout_height="63dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentBottom="true"
-        android:layout_marginStart="23dp"
-        android:layout_marginBottom="14dp"
-        android:textSize="32dp" />
 
-</RelativeLayout>
+        <org.opencv.android.JavaCameraView
+            android:id="@+id/camera_view"
+            android:layout_width="370dp"
+            android:layout_height="478dp"
+            opencv:camera_id="any"
+            opencv:layout_constraintLeft_toLeftOf="parent"
+            opencv:layout_constraintRight_toRightOf="parent"
+            opencv:layout_constraintTop_toTopOf="parent"
+            opencv:show_fps="false" />
+
+        <TextView
+            android:id="@+id/camera_data"
+            android:layout_width="374dp"
+            android:layout_height="63dp"
+            android:layout_marginStart="-4dp"
+            android:layout_marginTop="510dp"
+            android:textSize="20sp"
+            opencv:layout_constraintStart_toStartOf="@+id/camera_view"
+            opencv:layout_constraintTop_toTopOf="parent" />
+
+        <Button
+            android:id="@+id/add_record"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="600dp"
+            android:text="@string/add_record"
+            opencv:layout_constraintStart_toStartOf="@+id/camera_view"
+            opencv:layout_constraintTop_toTopOf="parent" />
+
+        <TextView
+            android:id="@+id/loc_data"
+            android:layout_width="366dp"
+            android:layout_height="472dp"
+            android:layout_marginBottom="551dp"
+            android:textSize="32sp"
+            opencv:layout_constraintBottom_toBottomOf="parent"
+            opencv:layout_constraintStart_toStartOf="@+id/camera_view" />
+
+    </android.support.constraint.ConstraintLayout>
+
+</ScrollView>

@@ -15,12 +15,12 @@
         android:layout_marginTop="290dp"
         android:layout_marginEnd="36dp"
         android:layout_marginBottom="353dp"
-        android:text="Camera Detection"
+        android:text="@string/camera_detection"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toEndOf="@+id/mapInit"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
+        app:layout_constraintVertical_bias="0.083" />
 
     <Button
         android:id="@+id/mapInit"
