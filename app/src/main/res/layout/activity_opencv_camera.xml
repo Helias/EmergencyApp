@@ -30,7 +30,7 @@
             android:layout_height="63dp"
             android:layout_marginStart="-4dp"
             android:layout_marginTop="510dp"
-            android:textSize="20sp"
+            android:textSize="32sp"
             opencv:layout_constraintStart_toStartOf="@+id/camera_view"
             opencv:layout_constraintTop_toTopOf="parent" />
 
@@ -46,13 +46,71 @@
 
         <TextView
             android:id="@+id/loc_data"
-            android:layout_width="366dp"
-            android:layout_height="472dp"
-            android:layout_marginBottom="551dp"
-            android:textSize="32sp"
+            android:layout_width="358dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="190dp"
+            android:textSize="15sp"
             opencv:layout_constraintBottom_toBottomOf="parent"
-            opencv:layout_constraintStart_toStartOf="@+id/camera_view" />
+            opencv:layout_constraintEnd_toEndOf="parent"
+            opencv:layout_constraintHorizontal_bias="0.49"
+            opencv:layout_constraintStart_toStartOf="parent"
+            opencv:layout_constraintTop_toBottomOf="@+id/camera_view"
+            opencv:layout_constraintVertical_bias="0.0" />
 
+        <Button
+            android:id="@+id/reset"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="27dp"
+            android:layout_marginTop="27dp"
+            android:layout_marginEnd="179dp"
+            android:layout_marginBottom="20dp"
+            android:text="@string/reset"
+            opencv:layout_constraintBottom_toTopOf="@+id/loc_data"
+            opencv:layout_constraintEnd_toEndOf="parent"
+            opencv:layout_constraintHorizontal_bias="0.0"
+            opencv:layout_constraintStart_toEndOf="@+id/add_record"
+            opencv:layout_constraintTop_toBottomOf="@+id/camera_data"
+            opencv:layout_constraintVertical_bias="0.0" />
+
+        <Button
+            android:id="@+id/show_map"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="31dp"
+            android:layout_marginTop="27dp"
+            android:layout_marginEnd="60dp"
+            android:layout_marginBottom="20dp"
+            android:text="@string/map_btn"
+            opencv:layout_constraintBottom_toTopOf="@+id/loc_data"
+            opencv:layout_constraintEnd_toEndOf="parent"
+            opencv:layout_constraintHorizontal_bias="0.0"
+            opencv:layout_constraintStart_toEndOf="@+id/reset"
+            opencv:layout_constraintTop_toBottomOf="@+id/camera_data"
+            opencv:layout_constraintVertical_bias="0.0" />
+
+        <Button
+            android:id="@+id/clear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="29dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginEnd="294dp"
+            android:text="@string/clear"
+            opencv:layout_constraintEnd_toEndOf="parent"
+            opencv:layout_constraintStart_toStartOf="parent"
+            opencv:layout_constraintTop_toBottomOf="@+id/loc_data" />
+
+        <fragment
+            android:id="@+id/map2"
+            android:name="com.google.android.gms.maps.SupportMapFragment"
+            android:layout_width="1dp"
+            android:layout_height="1dp"
+            android:layout_marginTop="32dp"
+            opencv:layout_constraintEnd_toEndOf="parent"
+            opencv:layout_constraintStart_toStartOf="parent"
+            opencv:layout_constraintTop_toBottomOf="@+id/clear"
+            tools:context=".MapsActivity" />
     </android.support.constraint.ConstraintLayout>
 
 </ScrollView>

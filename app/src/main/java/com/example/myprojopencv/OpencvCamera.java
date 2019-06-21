@@ -1,20 +1,30 @@
 package com.example.myprojopencv;
 
-import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
+import android.location.Location;
+import android.os.Build;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.util.SparseArray;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.WindowManager;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.GoogleMap;
+import com.google.android.gms.maps.OnMapReadyCallback;
+import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
@@ -29,21 +39,29 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, SensorEventListener {
+public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener {
 
     private static final String TAG = "OpencvCamera";
     private CameraBridgeViewBase cameraBridgeViewBase;
     private int maxFaceCount = 0;
-    private float mOrientation = 0f;
 
-    private SensorManager mSensorManager;
-    private Sensor mLight;
+    private GoogleMap mMap;
+    private GoogleApiClient mGoogleApiClient;
+    private LocationRequest mLocationRequest;
 
-    private final float[] accelerometerReading = new float[3];
-    private final float[] magnetometerReading = new float[3];
-    private final float[] rotationMatrix = new float[9];
-    private final float[] orientationAngles = new float[3];
+    private float range = 0.001f;
+    private Location mLastLocation;
+    private Location mLocation;
 
+    private float lat;
+    private float lon;
+
+    private Location loc_1 = new Location("");
+    private Location loc_2 = new Location("");
+    private Location loc_3 = new Location("");
+    private Location loc_4 = new Location("");
+
+    private String exits = "Exits";
 
     private BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -59,6 +77,23 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         }
     };
 
+    public boolean checkLocationPermission(){
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)  != PackageManager.PERMISSION_GRANTED) {
+
+            if (ActivityCompat.shouldShowRequestPermissionRationale(this, android.Manifest.permission.ACCESS_COARSE_LOCATION)) {
+                requestPermissions(new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+            } else {
+                requestPermissions(new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION}, 1);
+            }
+
+            return false;
+
+        } else {
+            return true;
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -69,26 +104,64 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         cameraBridgeViewBase.setVisibility(SurfaceView.VISIBLE);
         cameraBridgeViewBase.setCvCameraViewListener(this);
 
-        mSensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
-        mLight = mSensorManager.getDefaultSensor(Sensor.TYPE_LIGHT);
+        Button addInit = (Button) findViewById(R.id.add_record);
+        addInit.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) { addLoc(); }
+        });
+
+        Button resetInit = (Button) findViewById(R.id.reset);
+        resetInit .setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                maxFaceCount = 0;
+            }
+        });
+
+        Button mapInit = (Button) findViewById(R.id.show_map);
+        mapInit .setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent i = new Intent(getApplicationContext(),MapsActivity.class);
+                startActivity(i);
+            }
+        });
+
+        Button clearInit = (Button) findViewById(R.id.clear);
+        clearInit  .setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) { clear(); }
+        });
+
+        TextView tv2 = (TextView) findViewById(R.id.loc_data);
+        tv2.setText(exits);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            checkLocationPermission();
+        }
+
+        SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map2);
+        mapFragment.getMapAsync(this);
+
+
+        if (mLastLocation != null) {
+            lat = (float) mLastLocation.getLatitude();
+            lon = (float) mLastLocation.getLongitude();
+
+            loc_1.setLatitude(lat + range);
+            loc_1.setLatitude(lon);
+            loc_2.setLatitude(lat);
+            loc_2.setLongitude(lon + range);
+            loc_3.setLatitude(lat - range);
+            loc_3.setLongitude(lon);
+            loc_4.setLatitude(lat);
+            loc_4.setLongitude(lon - range);
+        }
     }
 
     @Override
     public void onResume(){
         super.onResume();
-
-        // Position Sensor
-        mSensorManager.registerListener(this, mLight, SensorManager.SENSOR_DELAY_NORMAL);
-
-        Sensor accelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-        if (accelerometer != null) {
-            mSensorManager.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
-        }
-
-        Sensor magneticField = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        if (magneticField != null) {
-            mSensorManager.registerListener(this, magneticField, SensorManager.SENSOR_DELAY_NORMAL, SensorManager.SENSOR_DELAY_UI);
-        }
 
         // OpenCV
         if (!OpenCVLoader.initDebug()) {
@@ -144,11 +217,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
             }
 
             TextView tv1 = (TextView) findViewById(R.id.camera_data);
-            tv1.setText("People: " + Integer.toString(faceCount )+ "  Peak: " + Integer.toString(maxFaceCount) + " O1: " +  rotationMatrix[0] + " O2: " + rotationMatrix[1] + " O3: " + rotationMatrix[2]);
-
-            TextView tv2 = (TextView) findViewById(R.id.loc_data);
-            tv2.setText("Test");
-
+            tv1.setText("People: " + Integer.toString(faceCount )+ "  Peak: " + Integer.toString(maxFaceCount));
 
             for (int i = 0; i < sparseArray.size(); i++) {
                 Face face = sparseArray.valueAt(i);
@@ -165,55 +234,135 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         return mRgba;
     }
 
-    @Override
-    public void onSensorChanged(SensorEvent event) {
+    public void addLoc() {
 
-        updateOrientationAngles();
+        int loc = 1;
 
-        float[] mGravity = null;
-        float[] mGeomagnetic = null;
+        if (mLastLocation != null && mLocation != null) {
 
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
-            mGravity = event.values;
+            float minDistance = mLocation.distanceTo(loc_1);
 
-        if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
-            mGeomagnetic = event.values;
+            if (mLocation.distanceTo(loc_2) < minDistance) {
+                minDistance = mLocation.distanceTo(loc_2);
+                loc = 2;
+            }
 
-        if (mGravity != null && mGeomagnetic != null) {
+            if (mLocation.distanceTo(loc_3) < minDistance) {
+                minDistance = mLocation.distanceTo(loc_3);
+                loc = 3;
+            }
 
-            float R[] = new float[9];
-            float I[] = new float[9];
-
-            if (SensorManager.getRotationMatrix(R, I, mGravity, mGeomagnetic)) {
-
-                // orientation contains azimut, pitch and roll
-                float orientation[] = new float[3];
-                SensorManager.getOrientation(R, orientation);
-
-                mOrientation = 3;
-
-                mOrientation = orientation[0] * 360 / (2 * 3.14159f);
+            if (mLocation.distanceTo(loc_4) < minDistance) {
+                minDistance = mLocation.distanceTo(loc_4);
+                loc = 4;
             }
         }
 
-        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            System.arraycopy(event.values, 0, accelerometerReading,0, accelerometerReading.length);
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
-            System.arraycopy(event.values, 0, magnetometerReading, 0, magnetometerReading.length);
+        exits += "\nExit: " + Integer.toString(loc) + " People: " + maxFaceCount;
+
+        maxFaceCount = 0;
+
+        TextView tv2 = (TextView) findViewById(R.id.loc_data);
+        tv2.setText(exits);
+    }
+
+    public void clear() {
+        exits = "Exits";
+
+        TextView tv2 = (TextView) findViewById(R.id.loc_data);
+        tv2.setText(exits);
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+
+        switch (requestCode) {
+            case 1: {
+
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+
+                    if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                        if (mGoogleApiClient == null) {
+                            buildGoogleApiClient();
+                        }
+                        mMap.setMyLocationEnabled(true);
+                    }
+                }
+                return;
+            }
         }
     }
 
     @Override
-    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+    public void onMapReady(GoogleMap googleMap) {
+
+        mMap = googleMap;
+        mMap.setMapType(GoogleMap.MAP_TYPE_NORMAL);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+                buildGoogleApiClient();
+                mMap.setMyLocationEnabled(true);
+            }
+        }
+        else {
+            buildGoogleApiClient();
+            mMap.setMyLocationEnabled(true);
+        }
 
     }
 
-    public void updateOrientationAngles() {
 
-        // Update rotation matrix, which is needed to update orientation angles.
-        SensorManager.getRotationMatrix(rotationMatrix, null, accelerometerReading, magnetometerReading);
-        SensorManager.getOrientation(rotationMatrix, orientationAngles);
+    protected synchronized void buildGoogleApiClient() {
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .addConnectionCallbacks(this)
+                .addApi(LocationServices.API)
+                .build();
+        mGoogleApiClient.connect();
     }
 
+    @Override
+    public void onLocationChanged(Location location) {
+
+        if (location != null)
+        {
+            mLocation = location;
+
+            if (mLastLocation == null) {
+                mLastLocation = location;
+
+                lat = (float) mLastLocation.getLatitude();
+                lon = (float) mLastLocation.getLongitude();
+
+                loc_1.setLatitude(lat + range);
+                loc_1.setLatitude(lon);
+                loc_2.setLatitude(lat);
+                loc_2.setLongitude(lon + range);
+                loc_3.setLatitude(lat - range);
+                loc_3.setLongitude(lon);
+                loc_4.setLatitude(lat);
+                loc_4.setLongitude(lon - range);
+            }
+        }
+
+    }
+
+    @Override
+    public void onConnected(Bundle bundle) {
+        TextView tv2 = (TextView) findViewById(R.id.loc_data);
+        tv2.setText(exits);
+
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(2000);
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            LocationServices.FusedLocationApi.requestLocationUpdates(mGoogleApiClient, mLocationRequest, this);
+        }
+    }
+
+    @Override
+    public void onConnectionSuspended(int i) {
+
+    }
 
 }

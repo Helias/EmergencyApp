@@ -5,4 +5,7 @@
     <string name="map">Map</string>
     <string name="camera_detection">Camera Detection</string>
     <string name="add_record">＋ Add</string>
+    <string name="reset">Reset</string>
+    <string name="map_btn">MAP</string>
+    <string name="clear">Clear</string>
 </resources>
