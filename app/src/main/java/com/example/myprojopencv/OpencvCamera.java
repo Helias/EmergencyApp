@@ -1,8 +1,14 @@
 package com.example.myprojopencv;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.location.Location;
 import android.os.Build;
 import android.support.v4.app.ActivityCompat;
@@ -25,6 +31,10 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
+import com.google.android.gms.maps.model.LatLng;
+//import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
 import com.google.android.gms.vision.face.FaceDetector;
@@ -39,7 +49,7 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
-public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener {
+public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener, SensorEventListener {
 
     private static final String TAG = "OpencvCamera";
     private CameraBridgeViewBase cameraBridgeViewBase;
@@ -62,6 +72,19 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
     private Location loc_4 = new Location("");
 
     private String exits = "Exits";
+
+    int mAzimuth;
+    private SensorManager mSensorManager;
+    private Sensor mRotationV, mAccelerometer, mMagnetometer;
+    boolean haveSensor = false, haveSensor2 = false;
+    float[] rMat = new float[9];
+    float[] orientation = new float[3];
+    private float[] mLastAccelerometer = new float[3];
+    private float[] mLastMagnetometer = new float[3];
+    private boolean mLastAccelerometerSet = false;
+    private boolean mLastMagnetometerSet = false;
+
+//    private Marker tmpMarker;
 
     private BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(this) {
         @Override
@@ -100,6 +123,10 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
 
         setContentView(R.layout.activity_opencv_camera);
+
+        mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
+        startSM();
+
         cameraBridgeViewBase = (CameraBridgeViewBase) findViewById(R.id.camera_view);
         cameraBridgeViewBase.setVisibility(SurfaceView.VISIBLE);
         cameraBridgeViewBase.setCvCameraViewListener(this);
@@ -159,9 +186,56 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         }
     }
 
+    private void startSM() {
+        if (mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) == null) {
+            if ((mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) == null) || (mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) == null)) {
+                noSensorsAlert();
+            }
+            else {
+                mAccelerometer = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+                mMagnetometer = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+                haveSensor = mSensorManager.registerListener(this, mAccelerometer, SensorManager.SENSOR_DELAY_UI);
+                haveSensor2 = mSensorManager.registerListener(this, mMagnetometer, SensorManager.SENSOR_DELAY_UI);
+            }
+        }
+        else{
+            mRotationV = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
+            haveSensor = mSensorManager.registerListener(this, mRotationV, SensorManager.SENSOR_DELAY_UI);
+        }
+    }
+
+    public void noSensorsAlert(){
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(this);
+        alertDialog.setMessage("Your device doesn't support the Compass.")
+                .setCancelable(false)
+                .setNegativeButton("Close",new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        finish();
+                    }
+                });
+        alertDialog.show();
+    }
+
+    public void stopSM() {
+        if (haveSensor) {
+            mSensorManager.unregisterListener(this, mRotationV);
+        }
+        else {
+            mSensorManager.unregisterListener(this, mAccelerometer);
+            mSensorManager.unregisterListener(this, mMagnetometer);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        stopSM();
+    }
+
     @Override
     public void onResume(){
         super.onResume();
+        startSM();
 
         // OpenCV
         if (!OpenCVLoader.initDebug()) {
@@ -342,6 +416,11 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
                 loc_3.setLongitude(lon);
                 loc_4.setLatitude(lat);
                 loc_4.setLongitude(lon - range);
+
+                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).position(new LatLng(location.getLatitude() + range, location.getLongitude())).title("Exit 1"));
+                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)).position(new LatLng(location.getLatitude(), location.getLongitude() + range)).title("Exit 2"));
+                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)).position(new LatLng(location.getLatitude() - range, location.getLongitude())).title("Exit 3"));
+                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)).position(new LatLng(location.getLatitude(), location.getLongitude() - range)).title("Exit 4"));
             }
         }
 
@@ -362,6 +441,64 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
     @Override
     public void onConnectionSuspended(int i) {
+
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+        if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR) {
+            SensorManager.getRotationMatrixFromVector(rMat, event.values);
+            mAzimuth = (int) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 360) % 360;
+        }
+
+        if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+            System.arraycopy(event.values, 0, mLastAccelerometer, 0, event.values.length);
+            mLastAccelerometerSet = true;
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+            System.arraycopy(event.values, 0, mLastMagnetometer, 0, event.values.length);
+            mLastMagnetometerSet = true;
+        }
+        if (mLastAccelerometerSet && mLastMagnetometerSet) {
+            SensorManager.getRotationMatrix(rMat, null, mLastAccelerometer, mLastMagnetometer);
+            SensorManager.getOrientation(rMat, orientation);
+            mAzimuth = (int) (Math.toDegrees(SensorManager.getOrientation(rMat, orientation)[0]) + 360) % 360;
+        }
+
+        mAzimuth = Math.round(mAzimuth);
+
+        if (mLocation != null) {
+
+            int tmpAz = -(mAzimuth+90);
+            float y = (float) (Math.sin(Math.toRadians(tmpAz)) * 0.0003 + mLocation.getLatitude());
+            float x = (float) (Math.cos(Math.toRadians(tmpAz)) * 0.0003 + mLocation.getLongitude());
+
+            mLocation.setLongitude(x);
+            mLocation.setLatitude(y);
+
+//
+//            if (tmpMarker != null) {
+//                tmpMarker.remove();
+//            }
+
+//            tmpMarker = mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).position(new LatLng(y, x)).title("X"));
+//
+//            tmp = "az: " + Integer.toString(mAzimuth) +
+//                    "\n" + tmpAz +
+//                    "\n" + x +
+//                    "\n" + y +
+//                    "\n" + (Math.cos(tmpAz)) +
+//                    "\n" + (Math.sin(tmpAz)) +
+//                    "\n" + (Math.cos(Math.toRadians(tmpAz))) +
+//                    "\n" + (Math.sin(Math.toRadians(tmpAz)));
+//
+//            TextView tv2 = (TextView) findViewById(R.id.loc_data);
+//            tv2.setText(tmp);
+
+        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
 
     }
 
