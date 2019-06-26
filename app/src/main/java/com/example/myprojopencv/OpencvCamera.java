@@ -81,7 +81,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
     private boolean mLastAccelerometerSet = false;
     private boolean mLastMagnetometerSet = false;
 
-    private List<Marker> markers = new ArrayList<Marker>();
+    private List<String> markers = new ArrayList<String>();
 //    private Marker tmpMarker;
 
     private BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(this) {
@@ -147,7 +147,6 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         mapInit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                clearMarkers();
                 Intent i = new Intent(getApplicationContext(),MapsActivity.class);
                 startActivity(i);
             }
@@ -182,11 +181,9 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
                 BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
 
                 String receiveString;
-                String values[];
 
                 while ((receiveString = bufferedReader.readLine()) != null) {
-                    values = receiveString.split(",");
-                    markers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(Double.parseDouble(values[1]), Double.parseDouble(values[2]))).title(values[0])));
+                    markers.add(receiveString);
                 }
 
                 inputStream.close();
@@ -199,12 +196,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
     }
 
     public void clearMarkers() {
-        if (markers.size() > 0) {
-            for (Marker m : markers) {
-                markers.get(markers.size()-1).remove();
-                markers.remove(markers.size()-1);
-            }
-        }
+        markers.clear();
     }
 
     private void startSM() {
@@ -266,7 +258,6 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
             Log.d(TAG, "OpenCV library found inside package. Using it!");
             baseLoaderCallback.onManagerConnected(LoaderCallbackInterface.SUCCESS);
         }
-
     }
 
     @Override
@@ -331,9 +322,8 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
     public void addLoc() {
 
-        if (markers.size() == 0) {
-            loadMarkers();
-        }
+        clearMarkers();
+        loadMarkers();
 
         String tmpLoc = "";
 
@@ -343,16 +333,18 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
             float minDistance = 100000000;
 
-            Log.d("STEFANO", "TEEEEEEEEST 1");
+            String values[];
 
-            for (Marker m : markers) {
-                tmpL = new Location(m.getTitle());
-                tmpL.setLatitude(m.getPosition().latitude);
-                tmpL.setLongitude(m.getPosition().longitude);
+            for (String m : markers) {
+
+                values = m.split(",");
+                tmpL = new Location(values[0]);
+                tmpL.setLatitude(Double.parseDouble(values[1]));
+                tmpL.setLongitude(Double.parseDouble(values[2]));
 
                 if (mLocation.distanceTo(tmpL) < minDistance) {
                     minDistance = mLocation.distanceTo(tmpL);
-                    tmpLoc = m.getTitle();
+                    tmpLoc = values[0];
                 }
             }
         }
@@ -409,6 +401,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
             mMap.setMyLocationEnabled(true);
         }
 
+        clearMarkers();
         loadMarkers();
     }
 
