@@ -1,6 +1,7 @@
 package com.example.myprojopencv;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -31,9 +32,8 @@ import com.google.android.gms.location.LocationServices;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-//import com.google.android.gms.maps.model.Marker;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.vision.Frame;
 import com.google.android.gms.vision.face.Face;
@@ -49,6 +49,13 @@ import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.imgproc.Imgproc;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
+
 public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewBase.CvCameraViewListener2, OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener, SensorEventListener {
 
     private static final String TAG = "OpencvCamera";
@@ -59,17 +66,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
     private GoogleApiClient mGoogleApiClient;
     private LocationRequest mLocationRequest;
 
-    private float range = 0.001f;
-    private Location mLastLocation;
     private Location mLocation;
-
-    private float lat;
-    private float lon;
-
-    private Location loc_1 = new Location("");
-    private Location loc_2 = new Location("");
-    private Location loc_3 = new Location("");
-    private Location loc_4 = new Location("");
 
     private String exits = "Exits";
 
@@ -84,6 +81,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
     private boolean mLastAccelerometerSet = false;
     private boolean mLastMagnetometerSet = false;
 
+    private List<Marker> markers = new ArrayList<Marker>();
 //    private Marker tmpMarker;
 
     private BaseLoaderCallback baseLoaderCallback = new BaseLoaderCallback(this) {
@@ -146,16 +144,17 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         });
 
         Button mapInit = (Button) findViewById(R.id.show_map);
-        mapInit .setOnClickListener(new View.OnClickListener() {
+        mapInit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                clearMarkers();
                 Intent i = new Intent(getApplicationContext(),MapsActivity.class);
                 startActivity(i);
             }
         });
 
         Button clearInit = (Button) findViewById(R.id.clear);
-        clearInit  .setOnClickListener(new View.OnClickListener() {
+        clearInit.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) { clear(); }
         });
@@ -169,20 +168,42 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map2);
         mapFragment.getMapAsync(this);
+    }
 
+    private void loadMarkers() {
 
-        if (mLastLocation != null) {
-            lat = (float) mLastLocation.getLatitude();
-            lon = (float) mLastLocation.getLongitude();
+        Context context = getApplicationContext();
 
-            loc_1.setLatitude(lat + range);
-            loc_1.setLatitude(lon);
-            loc_2.setLatitude(lat);
-            loc_2.setLongitude(lon + range);
-            loc_3.setLatitude(lat - range);
-            loc_3.setLongitude(lon);
-            loc_4.setLatitude(lat);
-            loc_4.setLongitude(lon - range);
+        try {
+            InputStream inputStream = context.openFileInput("markers_data.csv");
+
+            if (inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                String receiveString;
+                String values[];
+
+                while ((receiveString = bufferedReader.readLine()) != null) {
+                    values = receiveString.split(",");
+                    markers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(Double.parseDouble(values[1]), Double.parseDouble(values[2]))).title(values[0])));
+                }
+
+                inputStream.close();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+
+    }
+
+    public void clearMarkers() {
+        if (markers.size() > 0) {
+            for (Marker m : markers) {
+                markers.get(markers.size()-1).remove();
+                markers.remove(markers.size()-1);
+            }
         }
     }
 
@@ -310,29 +331,33 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
 
     public void addLoc() {
 
-        int loc = 1;
+        if (markers.size() == 0) {
+            loadMarkers();
+        }
 
-        if (mLastLocation != null && mLocation != null) {
+        String tmpLoc = "";
 
-            float minDistance = mLocation.distanceTo(loc_1);
+        if (mLocation != null && markers.size() > 0) {
 
-            if (mLocation.distanceTo(loc_2) < minDistance) {
-                minDistance = mLocation.distanceTo(loc_2);
-                loc = 2;
-            }
+            Location tmpL;
 
-            if (mLocation.distanceTo(loc_3) < minDistance) {
-                minDistance = mLocation.distanceTo(loc_3);
-                loc = 3;
-            }
+            float minDistance = 100000000;
 
-            if (mLocation.distanceTo(loc_4) < minDistance) {
-                minDistance = mLocation.distanceTo(loc_4);
-                loc = 4;
+            Log.d("STEFANO", "TEEEEEEEEST 1");
+
+            for (Marker m : markers) {
+                tmpL = new Location(m.getTitle());
+                tmpL.setLatitude(m.getPosition().latitude);
+                tmpL.setLongitude(m.getPosition().longitude);
+
+                if (mLocation.distanceTo(tmpL) < minDistance) {
+                    minDistance = mLocation.distanceTo(tmpL);
+                    tmpLoc = m.getTitle();
+                }
             }
         }
 
-        exits += "\nExit: " + Integer.toString(loc) + " People: " + maxFaceCount;
+        exits += "\nExit: " + tmpLoc  + " People: " + maxFaceCount;
 
         maxFaceCount = 0;
 
@@ -384,6 +409,7 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
             mMap.setMyLocationEnabled(true);
         }
 
+        loadMarkers();
     }
 
 
@@ -401,27 +427,6 @@ public class OpencvCamera extends AppCompatActivity implements CameraBridgeViewB
         if (location != null)
         {
             mLocation = location;
-
-            if (mLastLocation == null) {
-                mLastLocation = location;
-
-                lat = (float) mLastLocation.getLatitude();
-                lon = (float) mLastLocation.getLongitude();
-
-                loc_1.setLatitude(lat + range);
-                loc_1.setLatitude(lon);
-                loc_2.setLatitude(lat);
-                loc_2.setLongitude(lon + range);
-                loc_3.setLatitude(lat - range);
-                loc_3.setLongitude(lon);
-                loc_4.setLatitude(lat);
-                loc_4.setLongitude(lon - range);
-
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).position(new LatLng(location.getLatitude() + range, location.getLongitude())).title("Exit 1"));
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)).position(new LatLng(location.getLatitude(), location.getLongitude() + range)).title("Exit 2"));
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)).position(new LatLng(location.getLatitude() - range, location.getLongitude())).title("Exit 3"));
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)).position(new LatLng(location.getLatitude(), location.getLongitude() - range)).title("Exit 4"));
-            }
         }
 
     }

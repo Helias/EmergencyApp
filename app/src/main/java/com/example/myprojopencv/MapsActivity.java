@@ -1,5 +1,8 @@
 package com.example.myprojopencv;
 
+import android.app.Activity;
+import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
@@ -7,6 +10,8 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
+import android.view.View;
+import android.widget.Button;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -16,10 +21,18 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener {
 
@@ -30,6 +43,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public static Location mLastLocation;
     public static float range = 0.001f;
     private boolean isExit = false;
+    private static final int EDIT_REQUEST = 1;
+
+    private List<Marker> markers = new ArrayList<Marker>();
 
     public boolean checkLocationPermission(){
 
@@ -86,6 +102,20 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             checkLocationPermission();
         }
 
+
+        Button btnDel = (Button) findViewById(R.id.del);
+        btnDel.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View view) {
+                if (markers.size() > 0) {
+                    markers.get(markers.size()-1).remove();
+                    markers.remove(markers.size()-1);
+
+                    saveMarkers();
+                }
+            }
+        });
+
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
     }
@@ -105,6 +135,74 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         else {
             buildGoogleApiClient();
             mMap.setMyLocationEnabled(true);
+        }
+
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(final LatLng latLng) {
+                Intent edit = new Intent(MapsActivity.this, EditActivity.class);
+                edit.putExtra("location", latLng);
+                MapsActivity.this.startActivityForResult(edit, EDIT_REQUEST);
+            }
+        });
+
+    }
+
+    @Override
+    public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        switch(requestCode) {
+            case (EDIT_REQUEST) : {
+                if (resultCode == Activity.RESULT_OK) {
+                    MarkerOptions markerOptions = data.getParcelableExtra("marker");
+                    markers.add(mMap.addMarker(markerOptions));
+
+                    saveMarkers();
+                }
+                break;
+            }
+        }
+    }
+
+    private void saveMarkers() {
+        try {
+            Context context = getApplicationContext();
+            OutputStreamWriter outputStreamWriter = new OutputStreamWriter(openFileOutput("markers_data.csv", Context.MODE_PRIVATE));
+
+            for (Marker m : markers) {
+                outputStreamWriter.write(m.getTitle().replace(",", "") + "," + m.getPosition().latitude + "," + m.getPosition().longitude + "\n");
+            }
+
+            outputStreamWriter.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void loadMarkers() {
+
+        try {
+            Context context = getApplicationContext();
+            InputStream inputStream = context.openFileInput("markers_data.csv");
+
+            if (inputStream != null) {
+                InputStreamReader inputStreamReader = new InputStreamReader(inputStream);
+                BufferedReader bufferedReader = new BufferedReader(inputStreamReader);
+
+                String receiveString;
+                String values[];
+
+                while ((receiveString = bufferedReader.readLine()) != null) {
+                    values = receiveString.split(",");
+                    markers.add(mMap.addMarker(new MarkerOptions().position(new LatLng(Double.parseDouble(values[1]), Double.parseDouble(values[2]))).title(values[0])));
+                }
+
+                inputStream.close();
+            }
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
 
     }
@@ -127,11 +225,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             if (!isExit) {
 
                 mLastLocation = location;
-
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_AZURE)).position(new LatLng(location.getLatitude() + range, location.getLongitude())).title("Exit 1"));
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE)).position(new LatLng(location.getLatitude(), location.getLongitude() + range)).title("Exit 2"));
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)).position(new LatLng(location.getLatitude() - range, location.getLongitude())).title("Exit 3"));
-                mMap.addMarker(new MarkerOptions().icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_YELLOW)).position(new LatLng(location.getLatitude(), location.getLongitude() - range)).title("Exit 4"));
+                loadMarkers();
 
                 isExit = true;
             }
